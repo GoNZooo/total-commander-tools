@@ -62,16 +62,18 @@ pub fn getSourceAndTarget(
     allocator: *mem.Allocator,
     parameters: []const []const u8,
 ) !SourceAndTarget {
-    if (parameters.len < 2) {
-        return error.NoSources;
-    } else {
-        var sources = try allocator.create(Source);
-        var target = try allocator.create(Target);
+    switch (parameters.len) {
+        3 => {
+            var sources = try allocator.create(Source);
+            var target = try allocator.create(Target);
 
-        return SourceAndTarget{
-            .source = Source{ .value = try allocator.dupe(u8, parameters[1]) },
-            .target = Target{ .value = try allocator.dupe(u8, parameters[2]) },
-        };
+            return SourceAndTarget{
+                .source = Source{ .value = try allocator.dupe(u8, parameters[1]) },
+                .target = Target{ .value = try allocator.dupe(u8, parameters[2]) },
+            };
+        },
+        1, 2 => return error.NotEnoughParameters,
+        else => return error.TooManySources,
     }
 }
 
