@@ -11,6 +11,11 @@ pub const Target = struct {
     value: []const u8,
 };
 
+pub const SourcesAndTarget = struct {
+    sources: []Source,
+    target: Target,
+};
+
 pub fn getSource(parameters: []const []const u8) !Source {
     return if (parameters.len != 2) error.TooManySources else Source{ .value = parameters[1] };
 }
@@ -28,8 +33,24 @@ pub fn getSources(allocator: *mem.Allocator, parameters: []const []const u8) ![]
     }
 }
 
-pub fn getSourceAndTarget(parameters: [][]const u8) !Source {
-    return if (parameters.len < 2) error.NoSources else parameters[1..];
+pub fn getSourcesAndTarget(
+    allocator: *mem.Allocator,
+    parameters: []const []const u8,
+) !SourcesAndTarget {
+    if (parameters.len < 2) {
+        return error.NoSources;
+    } else {
+        var sources = try allocator.alloc(Source, parameters.len - 2);
+        for (sources) |*source, i| {
+            source.* = Source{ .value = try allocator.dupe(u8, parameters[i + 1]) };
+        }
+        var target = try allocator.create(Target);
+
+        return SourcesAndTarget{
+            .sources = sources,
+            .target = Target{ .value = try allocator.dupe(u8, parameters[parameters.len - 1]) },
+        };
+    }
 }
 
 test "getting sources and targets works" {
@@ -50,5 +71,28 @@ test "getting sources and targets works" {
         u8,
         "source2",
         sources_result[1].value,
+    );
+
+    const multiple_source_and_target_parameters = [_][]const u8{
+        "programName",
+        "source1",
+        "source2",
+        "target",
+    };
+    const sources_and_target_result = try getSourcesAndTarget(heap.page_allocator, &multiple_source_and_target_parameters);
+    testing.expectEqualSlices(
+        u8,
+        "source1",
+        sources_and_target_result.sources[0].value,
+    );
+    testing.expectEqualSlices(
+        u8,
+        "source2",
+        sources_and_target_result.sources[1].value,
+    );
+    testing.expectEqualSlices(
+        u8,
+        "target",
+        sources_and_target_result.target.value,
     );
 }
