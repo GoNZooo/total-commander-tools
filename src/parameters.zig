@@ -77,33 +77,32 @@ pub fn getSourceAndTarget(
     }
 }
 
-test "getting sources and targets works" {
-    const single_source_parameters = [_][]const u8{ "programName", "source" };
+test "`getSource`" {
     testing.expectEqual(
         Source{ .value = "source" },
         try getSource(&single_source_parameters),
     );
+}
 
-    const multiple_source_parameters = [_][]const u8{ "programName", "source1", "source2" };
+test "`getSources`" {
     const sources_result = try getSources(heap.page_allocator, &multiple_source_parameters);
     testing.expectEqualSlices(
         u8,
-        "source1",
+        multiple_source_parameters[1],
         sources_result[0].value,
     );
     testing.expectEqualSlices(
         u8,
-        "source2",
+        multiple_source_parameters[2],
         sources_result[1].value,
     );
+}
 
-    const multiple_source_and_target_parameters = [_][]const u8{
-        "programName",
-        "source1",
-        "source2",
-        "target",
-    };
-    const sources_and_target_result = try getSourcesAndTarget(heap.page_allocator, &multiple_source_and_target_parameters);
+test "`getSourcesAndTarget`" {
+    const sources_and_target_result = try getSourcesAndTarget(
+        heap.page_allocator,
+        &multiple_source_and_target_parameters,
+    );
     testing.expectEqualSlices(
         u8,
         "source1",
@@ -119,6 +118,7 @@ test "getting sources and targets works" {
         "target",
         sources_and_target_result.target.value,
     );
+}
 
 test "`getSourceAndTarget`" {
     const source_and_target_parameters = [_][]const u8{
