@@ -16,6 +16,11 @@ pub const SourcesAndTarget = struct {
     target: Target,
 };
 
+pub const SourceAndTarget = struct {
+    source: Source,
+    target: Target,
+};
+
 pub fn getSource(parameters: []const []const u8) !Source {
     return if (parameters.len != 2) error.TooManySources else Source{ .value = parameters[1] };
 }
@@ -49,6 +54,23 @@ pub fn getSourcesAndTarget(
         return SourcesAndTarget{
             .sources = sources,
             .target = Target{ .value = try allocator.dupe(u8, parameters[parameters.len - 1]) },
+        };
+    }
+}
+
+pub fn getSourceAndTarget(
+    allocator: *mem.Allocator,
+    parameters: []const []const u8,
+) !SourceAndTarget {
+    if (parameters.len < 2) {
+        return error.NoSources;
+    } else {
+        var sources = try allocator.create(Source);
+        var target = try allocator.create(Target);
+
+        return SourceAndTarget{
+            .source = Source{ .value = try allocator.dupe(u8, parameters[1]) },
+            .target = Target{ .value = try allocator.dupe(u8, parameters[2]) },
         };
     }
 }
@@ -95,4 +117,50 @@ test "getting sources and targets works" {
         "target",
         sources_and_target_result.target.value,
     );
+
+test "`getSourceAndTarget`" {
+    const source_and_target_parameters = [_][]const u8{
+        "programName",
+        "source",
+        "target",
+    };
+    const source_and_target_result = try getSourceAndTarget(
+        heap.page_allocator,
+        &source_and_target_parameters,
+    );
+    testing.expectEqualSlices(
+        u8,
+        "source",
+        source_and_target_result.source.value,
+    );
+    testing.expectEqualSlices(
+        u8,
+        "target",
+        source_and_target_result.target.value,
+    );
+
+    // errors
+    testing.expectEqual(
+        getSourceAndTarget(heap.page_allocator, &single_source_parameters),
+        error.NotEnoughParameters,
+    );
+
+    testing.expectEqual(
+        getSourceAndTarget(
+            heap.page_allocator,
+            &multiple_source_and_target_parameters,
+        ),
+        error.TooManySources,
+    );
 }
+
+const multiple_source_and_target_parameters = [_][]const u8{
+    "programName",
+    "source1",
+    "source2",
+    "target",
+};
+
+const single_source_parameters = [_][]const u8{ "programName", "source" };
+
+const multiple_source_parameters = [_][]const u8{ "programName", "source1", "source2" };
